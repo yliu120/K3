@@ -11,6 +11,10 @@ require 'csv'
 require 'open3'
 require 'pg'
 
+QUERY_TABLES = {
+  "tpch4" => ["lineitem", "orders"]
+}
+
 def run(cmd, checks=[])
   puts cmd if $options[:debug]
   out, err, s = Open3.capture3(cmd)
@@ -216,19 +220,20 @@ end
 
 ### Deployment stage ###
 
-def gen_yaml(k3_data_path, role_file, script_path)
+def gen_yaml(k3_data_path, role_file, script_path, query_name)
   # Generate yaml file"
   cmd = ""
   cmd << "--switches " << $options[:num_switches].to_s << " " if $options[:num_switches]
   cmd << "--nodes " << $options[:num_nodes].to_s << " " if $options[:num_nodes]
   cmd << "--nmask " << $options[:nmask] << " " if $options[:nmask]
   cmd << "--perhost " << $options[:perhost].to_s << " " if $options[:perhost]
-  cmd << "--file " << k3_data_path << " "
+  cmd << "--root " << k3_data_path << " "
+  cmd << "--tables " << TPCH_QUERY_TABLES[query_name].join(",") << " "
 
   if $options[:run_mode] == "multicore"
-    cmd << "--multicore"
+    cmd << "--multicore "
   elsif $options[:run_mode] == "dist"
-    cmd << "--dist"
+    cmd << "--dist "
   end
 
   extra_args = []
@@ -343,7 +348,7 @@ def run_deploy_k3_remote(uid, server_url, k3_data_path, bin_path, nice_name, scr
   uid_s = uid == "latest" ? "" : "/#{uid}"
 
   # Genereate mesos yaml file"
-  gen_yaml(k3_data_path, role_path, script_path)
+  gen_yaml(k3_data_path, role_path, script_path, nice_name)
 
   stage "[5] Creating new mesos job"
   curl_args = full_ktrace ? {'jsonlog' => 'yes'} : {'jsonfinal' => 'yes'}
@@ -360,7 +365,7 @@ end
 # local deployment
 def run_deploy_k3_local(bin_path, k3_data_path, nice_name, script_path)
   role_file = File.join($workdir, nice_name + "_local.yaml")
-  gen_yaml(k3_data_path, role_file, script_path)
+  gen_yaml(k3_data_path, role_file, script_path, nice_name)
 
   json_dist_path = File.join($workdir, 'json')
 
@@ -862,7 +867,7 @@ def main()
   if $options[:deploy_k3]
     if $options[:dry_run]
       role_file = File.join($workdir, nice_name + "_local.yaml")
-      gen_yaml(k3_data_path, role_file, script_path)
+      gen_yaml(k3_data_path, role_file, script_path, nice_name)
     elsif $options[:run_local]
       run_deploy_k3_local(bin_path, k3_data_path, nice_name, script_path)
     else
