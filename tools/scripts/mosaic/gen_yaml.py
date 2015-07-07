@@ -4,6 +4,7 @@
 # Note: *requires pyyaml*
 import argparse
 import yaml
+import os
 
 def address(port):
     return ['127.0.0.1', port]
@@ -29,6 +30,16 @@ def parse_extra_args(args):
             val = arg.split("=", 1)
             extra_args[val[0]] = val[1]
     return extra_args
+
+def create_file_mux(root_path, tables):
+    (base_directory, file_range) = os.path.split(root_path)
+    if file_range:
+        (start, stop, step) = (int(i) for i in file_range.split(':'))
+        return [[os.path.join(base_directory, table + "_{:04d}.tbl".format(i))
+                 for i in range(start, stop, step)]
+                for table in tables]
+    else:
+        return [[os.path.join(base_directory, table + ".tbl")] for table in tables]
 
 def create_file(num_switches, num_nodes, file_path, extra_args):
     extra_args = parse_extra_args(extra_args)
@@ -133,18 +144,20 @@ def main():
                         dest="num_nodes", default=4)
     parser.add_argument("--nmask", type=str, help="mask for nodes", default="qp-hm.|qp-hd.?")
     parser.add_argument("--perhost", type=int, help="peers per host", default=1)
-    parser.add_argument("-f", "--file", type=str, dest="file_path", help="file path",
+    parser.add_argument("-r", "--root", type=str, dest="file_path", help="Base directory for K3 data files.",
                         default="/local/agenda.csv")
+    parser.add_argument("-t", "--tables", help="names of tables for query")
     parser.add_argument("--extra-args", type=str, help="extra arguments in x=y format")
     args = parser.parse_args()
+    file_mux_seq = create_file_mux(args.file_path, args.tables.split(","))
     if args.run_mode == "dist":
         create_dist_file(args.num_switches, args.perhost, args.num_nodes, args.nmask,
-                         args.file_path, args.extra_args)
+                         file_mux_seq, args.extra_args)
     elif args.run_mode == "local":
-        create_file(args.num_switches, args.num_nodes, args.file_path, args.extra_args)
+        create_file(args.num_switches, args.num_nodes, file_mux_seq, args.extra_args)
     elif args.run_mode == "multicore":
         create_multicore_file(args.num_switches, args.perhost, args.num_nodes, args.nmask,
-                              args.file_path, args.extra_args)
+                              file_mux_seq, args.extra_args)
 
 
 if __name__ == '__main__':
