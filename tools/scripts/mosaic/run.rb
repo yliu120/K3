@@ -228,7 +228,7 @@ def gen_yaml(k3_data_path, role_file, script_path, query_name)
   cmd << "--nmask " << $options[:nmask] << " " if $options[:nmask]
   cmd << "--perhost " << $options[:perhost].to_s << " " if $options[:perhost]
   cmd << "--root " << k3_data_path << " "
-  cmd << "--tables " << TPCH_QUERY_TABLES[query_name].join(",") << " "
+  cmd << "--tables " << QUERY_TABLES[query_name].join(",") << " "
 
   if $options[:run_mode] == "multicore"
     cmd << "--multicore "
