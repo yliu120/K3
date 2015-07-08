@@ -22,6 +22,7 @@ if __FILE__ == $0
   output_handles = {}
   CSV.foreach($*.shift, {:col_sep => "|", :quote_char => "\""}) do |row|
     stream_name = row[options[:field]]
+    next if stream_name.nil?
     if !output_handles.has_key?(stream_name)
       output_handles[stream_name] = CSV.open(
         "#{stream_name.downcase}#{options[:suffix]}.tbl",
