@@ -74,7 +74,7 @@ class MosaicBuiltins {
   }
 
   Set<R_i<Address>> free_buckets_builtin(
-      const std::unordered_map<int, R_key_value<int, R_key_value<int, Seq<R_i<int>>>>> &dim_bounds,
+      const MapE<int, R_key_value<int, R_key_value<int, Seq<R_i<int>>>>> &dim_bounds,
       const Collection<R_i<int>> &free_dims,
       std::function<std::function<Address(int)>(int)> get_ring_node,
       int bound_bucket,
