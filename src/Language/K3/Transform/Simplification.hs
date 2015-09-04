@@ -249,6 +249,10 @@ isEThreadsArgLambda :: Annotation Expression -> Bool
 isEThreadsArgLambda (EProperty (ePropertyName -> "ThreadsArgument")) = True
 isEThreadsArgLambda _ = False
 
+isEThreadFoldReturn :: Annotation Expression -> Bool
+isEThreadFoldReturn (EProperty (ePropertyName -> "ThreadFoldReturn")) = True
+isEThreadFoldReturn _ = False
+
 
 -- | Constant folding
 type FoldedExpr = Either String (Either (Value, Tree UID) (K3 Expression))
@@ -2159,9 +2163,9 @@ markLambdas lcenv expr = modifyTree doMark expr
 
         -- Mark folds that are threading transformers.
         doMark e@(PPrjApp2 cE "fold" fAs fLam fAcc app1As app2As) =
-          case fLam @~ isEThreadsArgLambda of
-            Nothing -> return e
-            _ -> let prje = (PPrj cE "fold" fAs) @+ inferredEProp "ThreadingTransformer" Nothing
+          if maybe True (const False) $ fLam @~ isEThreadsArgLambda
+            then return e
+            else let prje = (PPrj cE "fold" fAs) @+ inferredEProp "ThreadingTransformer" Nothing
                  in return $ PApp (PApp prje fLam app1As) fAcc app2As
 
         doMark e = return e
@@ -2239,8 +2243,10 @@ inferVariableReturns i cl expr = mapVariableReturns annotateArgE annotateClosure
 
 
 -- | Apply a function to every return expression that is a fold accepting a variable named as the given identifier.
-mapThreadReturns :: (K3 Expression -> K3 Expression) -> Identifier -> K3 Expression -> (Bool, K3 Expression)
-mapThreadReturns onFoldRetF i expr = runIdentity $ do
+mapThreadReturns :: (K3 Expression -> K3 Expression)
+                 -> (K3 Expression -> K3 Expression)
+                 -> Identifier -> K3 Expression -> (Bool, K3 Expression)
+mapThreadReturns onFoldPrjF onFoldF i expr = runIdentity $ do
   (isAcc, e) <- doInference
   return $ (either id id isAcc, e)
 
@@ -2266,8 +2272,8 @@ mapThreadReturns onFoldRetF i expr = runIdentity $ do
       | i == j && not shadowed =
         case (fLam @~ isEReturnsArgLambda, fLam @~ isEThreadsArgLambda) of
           (Nothing, Nothing) -> return (Right False, e)
-          (_, _) -> let re = PApp (PApp (onFoldRetF $ PPrj cE "fold" fAs) fLam app1As) (PVar j jAs) app2As
-                    in return (Left True, re)
+          (_, _) -> let re = PApp (PApp (onFoldPrjF $ PPrj cE "fold" fAs) fLam app1As) (PVar j jAs) app2As
+                    in return (Left True, onFoldF re)
 
     threadReturn _ (onDirectReturnBranch [0]   -> isThreadRet) e@(tag -> ELambda _)     = return (isThreadRet, e)
     threadReturn _ (onDirectReturnBranch [0]   -> isThreadRet) e@(tag -> EOperate OApp) = return (isThreadRet, e)
@@ -2293,8 +2299,15 @@ mapThreadReturns onFoldRetF i expr = runIdentity $ do
 
 
 inferThreadReturns :: Identifier -> K3 Expression -> (Bool, K3 Expression)
-inferThreadReturns i expr = mapThreadReturns annotateFoldE i expr
-  where annotateFoldE e = e @+ (inferredEProp "ThreadFoldReturn" Nothing)
+inferThreadReturns i expr = mapThreadReturns annotateFoldPrjE annotateFoldE i expr
+  where annotateFoldPrjE e = e @+ (inferredEProp "ThreadFoldReturn" Nothing)
+
+        annotateFoldE e@(PPrjApp2 cE "fold" fAs fLam (PVar j jAs) app1As app2As) =
+          if maybe False (const True) $ fLam @~ isEReturnsArgLambda
+            then PPrjApp2 cE "fold" (fAs ++ [inferredEProp "ThreadingTransformer" Nothing]) fLam (PVar j jAs) app1As app2As
+            else e
+        annotateFoldE e = e
+
 
 
 -- Helper patterns for fusion
