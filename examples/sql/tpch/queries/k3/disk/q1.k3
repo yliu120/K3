@@ -9,6 +9,7 @@ include "tpch/loader.k3"
 // Force generation of _BFC class (Codegen Bug)
 declare dummy: collection lineitem_r @BulkFlatCollection
 declare lineitem: lineitem_elem_bag
+declare orders: orders_elem_bag
 
 declare master: address
 declare workers: mut collection {addr: address} @Collection
@@ -79,6 +80,7 @@ trigger ready: () = \_ -> (
 ) @Barrier(lbl=[# ready], count=[$ peers.size() ])
 
 declare lineitem_path: string = "/local/data/tpch10g/lineitem_bfcs"
+declare orders_path: string = "/local/data/tpch10g/orders_bfcs"
 
 // Local Trigger
 trigger t: () = \_ -> (
@@ -92,18 +94,17 @@ trigger t: () = \_ -> (
   (done, master) <- ()
 ) @DistributedGroupBy2(lbl=[# gb1], merge=[$ merge_agg ])
 
-declare lineitem_e: mut collection {elem: lineitem_r} @Collection
-declare result2: mut collection {elem: int} @Collection
+declare result2: mut collection {elem: {orderkey: int, orderdate: int, revenue: real}} @Collection
 
 trigger t2: () = \_ -> (
-  result2 = ((((lineitem @:BaseTable "lineitem_path")
+  (result2 = ((((lineitem @:BaseTable "lineitem_path")
              .filter
-               (\e -> e.elem.l_shipdate <= 19980902)) @:Stream)
+               (\e -> e.elem.l_shipdate > 19950315)) @:Stream)
              .equijoin
-               ((lineitem @:BaseTable "lineitem_path") @:Stream)
+               ((orders @:BaseTable "orders_path") @:Stream)
                (\e -> e.elem.l_orderkey)
-               (\e -> e.elem.l_orderkey)
-               (\_ -> \_ -> 1));
+               (\e -> e.elem.o_orderkey)
+               (\l -> \o -> {orderkey: l.elem.l_orderkey, orderdate: o.elem.o_orderdate, revenue: l.elem.l_extendedprice * (1 - l.elem.l_discount)})));
   (done, master) <- ()
 ) @DistributedHashJoin2(lbl=[# join1])
 
