@@ -130,6 +130,17 @@ RUN wget https://github.com/jemalloc/jemalloc/releases/download/$JEMALLOC_VER/je
   cd .. && \
   rm -Rf /jemalloc-$JEMALLOC_VER
 
+# Install libunwind (a specific version for gperftools)
+RUN wget http://download.savannah.gnu.org/releases/libunwind/libunwind-0.99-beta.tar.gz && \
+  tar -xvf libunwind-0.99-beta.tar.gz && \
+  rm libunwind-0.99-beta.tar.gz && \
+  cd libunwind-0.99-beta && \
+  ./configure --prefix=/usr && \
+  make && \
+  make install && \
+  cd / && \
+  rm -Rf libunwind-0.99-beta
+
 # Install gperftools
 RUN wget https://github.com/gperftools/gperftools/releases/download/gperftools-$PERFTOOLS_VER/gperftools-$PERFTOOLS_VER.tar.gz && \
   tar -xvf gperftools-$PERFTOOLS_VER.tar.gz && \
@@ -140,6 +151,15 @@ RUN wget https://github.com/gperftools/gperftools/releases/download/gperftools-$
   make install && \
   cd .. && \
   rm -Rf /gperftools-$PERFTOOLS_VER
+
+# Intall perf for kernel 3.13
+RUN apt-get install -y flex bison libelf-dev libaudit-dev libdw-dev binutils-dev libunwind-dev && \
+  wget https://github.com/torvalds/linux/archive/v3.13.tar.gz && \
+  tar -xvzf v3.13.tar.gz && rm v3.13.tar.gz && \
+  cd linux-3.13/tools/perf && make && make install && \
+  cp perf /usr/bin && \
+  cp libperf.a /usr/lib && \
+  cd / && rm -Rf /linux-3.13
 
 # Install yaml-cpp
 RUN wget https://github.com/jbeder/yaml-cpp/archive/release-$YAML_CPP_VER.tar.gz && \
