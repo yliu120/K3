@@ -14,6 +14,10 @@ QUERIES = {
     :roles => {
       "10g" => "tpch_10g.yml",
       "100g" => "tpch_100g.yml",
+      "scalability_16" => "tpch_scalability_16.yml",
+      "scalability_32" => "tpch_scalability_32.yml",
+      "scalability_64" => "tpch_scalability_64.yml",
+      "scalability_128" => "tpch_scalability_128.yml"
     },
     :queries => {
       "1" => "examples/sql/tpch/queries/k3/q1.k3",
@@ -57,6 +61,7 @@ QUERIES = {
     }
   },
 
+  # BFC conversion
   "conversion" => {
     :roles => {
       "10g" => "convert_10g.yml",
@@ -67,16 +72,6 @@ QUERIES = {
       "convert" => "examples/sql/tpch/convert.k3"
     }
   },
-
-  "test" => {
-   :roles => {
-     "test" => "test.yml"
-   },
-
-   :queries => {
-     "test" => "test.k3"
-   }
-  }
 }
 
 def slugify(experiment, query)

@@ -76,7 +76,7 @@ trigger init: () = \_ -> (
 // Initial barrier
 trigger ready: () = \_ -> (
   start = now_int();
-  peers.iterate (\p -> (t, p.addr) <- ())
+  peers.iterate (\p -> (t2, p.addr) <- ())
 ) @Barrier(lbl=[# ready], count=[$ peers.size() ])
 
 declare lineitem_path: string = "/local/data/tpch10g/lineitem_bfcs"

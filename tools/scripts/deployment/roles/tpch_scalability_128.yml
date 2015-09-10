@@ -1,0 +1,19 @@
+volumes:
+  - {host: /data, container: /data}
+name: role 1
+peers: 128
+peers_per_host: 8
+hostmask: "qp-hm1|qp-hm2|qp-hm3|qp-hm4|qp-hm5|qp-hm6|qp-hm7|qp-hm8|qp-hd1$|qp-hd2|qp-hd4|qp-hd6|qp-hd7|qp-hd8|qp-hd9|qp-hd12"
+k3_globals:
+  role: [{i: rows}]
+  master: auto
+k3_data:
+  - {var: dataFiles, path: /data/scalability/128/lineitem, policy: global}
+  - {var: lineitemFiles, path: /data/scalability/128/lineitem, policy: global}
+  - {var: customerFiles, path: /data/scalability/128/customer, policy: global}  
+  - {var: ordersFiles, path: /data/scalability/128/orders, policy: global}  
+  - {var: supplierFiles, path: /data/scalability/128/supplier, policy: global}  
+  - {var: partsuppFiles, path: /data/scalability/128/partsupp, policy: global}  
+  - {var: partFiles, path: /data/scalability/128/part, policy: global}  
+  - {var: regionFiles, path: /data/scalability/128/region, policy: replicate}
+  - {var: nationFiles, path: /data/scalability/128/nation, policy: replicate}
